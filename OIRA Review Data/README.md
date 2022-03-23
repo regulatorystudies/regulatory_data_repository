@@ -12,8 +12,8 @@
 | date_received | Date Received | 
 | date_completed | Date Completed | 
 | Stage | Stage of Rule (Eg: Proposed Rule, Final Rule) | 
-| ES |    |
-| major |       |
+| ES |  Economic Significance (Y/N)  |
+| major |   Major Rule Status (Y/N)    |
 | legal_deadline |    |
 | decision |    |
 
