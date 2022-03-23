@@ -9,9 +9,11 @@ The current version of the repository contains the following data sets:
 
 * Unified Agenda Data
 
-| Timeframe: | Fall 1995 - Fall 2020 |
-| Source: | Reginfo.gov XML reports (https://www.reginfo.gov/public/do/eAgendaXmlReport)
-| Data format: | csv
+| Timeframe: | Fall 1995 - Fall 2020                                                          |
+| :--------: | :-----------------------------------------------------------------------------:|
+| Source:    | Reginfo.gov XML reports (https://www.reginfo.gov/public/do/eAgendaXmlReport)
+
+| Data format: | csv | 
 | Size: | 223 MB
 | Number of data points: 204,427
 
