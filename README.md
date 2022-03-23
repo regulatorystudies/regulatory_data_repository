@@ -21,8 +21,24 @@ Description: This data set contains data for all rulemakings published in Unifie
 
 
 
-* OIRA Data  
-* Federal Register Data
+2. OIRA Review Data
+
+Description: This data set contains data for all OIRA reviews to date since 1981. It includes the RIN, rule title, agency code, agency name, date and year received, date and year completed, rule stage, economic significance (Y/N), major rule status (Y/N), legal deadline, and decision. Updated bi-weekly.
+
+
+|            |  OIRA Review Data                                                              | 
+| :--------: | :-----------------------------------------------------------------------------:|
+| Timeframe: | 1981 - 2021                                                                    |
+| Source:    |  Reginfo.gov XML reports                                                       |
+| Data format: | csv                                                                          | 
+| Size: | 4.5 MB                                                                              |
+| Number of data points: | 45,777                                                             |
+
+
+
+3. Regulatory Form data
+
+
 
 * Regulatory Forms
 * 
