@@ -2,7 +2,7 @@
 
 
 | Features    |  Description                                                           | 
-| :--------: | :-----------------------------------------------------------------------------:|
+| :-------- | :-----------------------------------------------------------------------------|
 | RIN | Regulation Identifier Number (RIN) - As described by the OIRA in the U.S. Office of Management and Budget (OMB)  |
 | Title   |             |
 | agency_code |   Agency Code                                                                       | 
