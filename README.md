@@ -1,28 +1,27 @@
 # Regulatory Data Repository 
 
-
-This Data Repository contains data sets that are frequently used in research related to regulation. The purpose of this repository is to provide clean, organized, and comprehensive data on federal rulemaking to facilitate research on regulation.
+This Data Repository consolidates public data on federal rulemakings that are frequently used in research related to regulation. The purpose of this repository is to provide clean, organized, and comprehensive data to facilitate research on regulation.
 
 This repository will be complemented and updated routinely.
 
 The current version of the repository contains the following data sets:
 
+
 ## 1. Unified Agenda Data
 
-Description: This data set contains data for all rulemakings published in Unified Agenda from Fall 1995 to Fall 2020. It includes most of the information you would find on a [Unified Agenda page](https://www.reginfo.gov/public/do/eAgendaViewRule?pubId=200604&RIN=2060-AN53), including RIN, rule title, abstract, agency, priority category (economically significant, significant, etc.), RIN status, rule stage, CFR citation, legal authority, and timetable (i.e., action, data, and FR citation). 
+This data set contains data for all rulemakings published in the semiannual [Unified Agenda of Regulatory and Deregulatory Actions](https://www.reginfo.gov/public/do/eAgendaMain) from Fall 1995 to Spring 2021. It includes most of the information you would find on a Unified Agenda page (for example, [RIN 2060-AN53] (https://www.reginfo.gov/public/do/eAgendaViewRule?pubId=200604&RIN=2060-AN53)), including RIN, rule title, abstract, agency, priority category (economically significant, significant, etc.), RIN status, rule stage, CFR citation, legal authority, and timetable (i.e., action, data, and FR citation). 
 
 |            |  Unified Agenda Data                                                           | 
 | :-------- | :------------------------------------------------------------------------------ |
-| Timeframe: | Fall 1995 - Fall 2020                                                          |
+| Timeframe: | Fall 1995 - Spring 2021                                                          |
 | Source:    | [Reginfo.gov XML Reports](https://www.reginfo.gov/public/do/eAgendaXmlReport)   |
-| Number of data points: | 204,427                                                            |
-
+| Last updated:	|	July 22, 2021	|
+| Number of data points: | 208,387                                                            |
 
 
 ## 2. OIRA Review Data
 
-Description: This data set contains data for all OIRA reviews to date since 1981. It includes the RIN, rule title, agency code, agency name, date and year received, date and year completed, rule stage, economic significance (Y/N), major rule status (Y/N), legal deadline, and decision. Updated bi-weekly.
-
+This data set contains data for all OIRA reviews to date since 1981. It includes the RIN, rule title, agency code, agency name, date and year received, date and year completed, rule stage, economic significance (Y/N), major rule status (Y/N), legal deadline, and decision. Updated bi-weekly.
 
 |            |  OIRA Review Data        | 
 | :--------  | :----------------------- |
@@ -31,8 +30,7 @@ Description: This data set contains data for all OIRA reviews to date since 1981
 | Number of data points: | 45,777       |                                                      
 
 
-
-## 3. Regulatory Forms data
+## 3. Regulatory Forms Data
 
 
 ## 4. Federal Register Data
