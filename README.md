@@ -13,10 +13,10 @@ This data set contains data for all rulemakings published in the semiannual [Uni
 
 |            |  Unified Agenda Data                                                           | 
 | :-------- | :------------------------------------------------------------------------------ |
-| Timeframe: | Fall 1995 - Spring 2021                                                          |
 | Source:    | [Reginfo.gov Unified Agenda XML Reports](https://www.reginfo.gov/public/do/eAgendaXmlReport)   |
-| Last updated:	|	July 22, 2021	|
+| Timeframe: | Fall 1995 - Spring 2021                                                          |
 | Number of data points: | 208,387                                                            |
+| Last updated:	|	July 22, 2021	|
 
 
 ## 2. OIRA Review Data
@@ -25,10 +25,10 @@ This data set contains data for all regulatory actions reviewed by the Office of
 
 |            |  OIRA Review Data        | 
 | :--------  | :----------------------- |
-| Timeframe: | 1981 - 2021              |
 | Source:    | [Reginfo.gov Regulatory Review XML Reports](https://www.reginfo.gov/public/do/XMLReportList) |
-| Last updated:	|	March 8, 2022	|
+| Timeframe: | 1981 - 2021              |
 | Number of data points: | 46,026       |                                                      
+| Last updated:	|	March 8, 2022	|
 
 
 ## 3. Regulatory Forms Data
