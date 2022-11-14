@@ -2,18 +2,18 @@
 
 
 
-| Features |  Description                                                           | 
+| Column |  Description                                                           | 
 | :-------- | :-----------------------------------------------------------------------------|
-| RIN | Regulation Identifier Number (RIN) - As described by the OIRA in the U.S. Office of Management and Budget (OMB)  |
+| RIN | Regulation Identifier Number (RIN)  |
 | Title   |  Title of the document           |
-| agency_code |   Agency Code                                                                       | 
-| agency_name | Name of the Agency                                                                            |
-| department_code | Department Code                                        |
-| deparment_name | Department Name | 
-| date_received | Date Received | 
-| date_completed | Date Completed | 
-| Stage | Stage of Rule (Eg: Proposed Rule, Final Rule) | 
-| ES |  Economic Significance (Y/N)  |
-| major |   Major Rule Status (Y/N)    |
-| legal_deadline |    |
-| decision |    |
+| agency_code |   Agency code                                                                       | 
+| agency_name | Agency name                                                                            |
+| department_code | Department code                                        |
+| deparment_name | Department name | 
+| date_received | The date on which OIRA received the document for regulatory review | 
+| date_completed | The date on which OIRA completed the regulatory review | 
+| Stage | Stage of the regulatory action (e.g.: Proposed Rule, Final Rule) | 
+| ES |  Economically significant rule (Y/N)  |
+| major |   Major rule status (Y/N)    |
+| legal_deadline |	Legal deadlines for the regulatory action    |
+| decision |	Decision of the regulatory review    |
