@@ -1,4 +1,4 @@
-# Regulatory Data Repository 
+# Regulatory Data Repository (Preliminary)
 
 This Data Repository consolidates public data on federal rulemakings that are frequently used in research related to regulation. The purpose of this repository is to provide clean, organized, and comprehensive data to facilitate research on regulation.
 
