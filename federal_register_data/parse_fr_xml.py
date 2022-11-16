@@ -17,7 +17,7 @@ from pathlib import Path
 
 #-----------------------------------------------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------------------------------------------
-#%%Download and extract FR files
+#%%Download XML files from GovInfo Bulk Data Repository
 files_failed=[]
 for year in range(2000, 2022):
     folder_path = 'federal_register_data/raw_xml_data/FR-' + str(year)
