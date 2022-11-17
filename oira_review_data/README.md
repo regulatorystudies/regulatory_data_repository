@@ -19,4 +19,4 @@
 | decision |	Decision of the regulatory review    |
 
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/zhoudanxie/regulatory_data_repository/HEAD?urlpath=%2Fvoila%2Frender%2FOIRAXMLtoCSV.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/zhoudanxie/regulatory_data_repository/HEAD?urlpath=%2Fvoila%2Frender%2Foira_review_data%2FOIRAXMLtoCSV.ipynb)
