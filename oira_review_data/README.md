@@ -17,3 +17,8 @@
 | major |   Major rule status (Y/N)    |
 | legal_deadline |	Legal deadlines for the regulatory action    |
 | decision |	Decision of the regulatory review    |
+
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/zhoudanxie/regulatory_data_repository/HEAD?urlpath=%2Fvoila%2Frender%2FOIRAXMLtoCSV.ipynb)
+.. image:: https://mybinder.org/badge_logo.svg
+ :target: https://mybinder.org/v2/gh/zhoudanxie/regulatory_data_repository/HEAD?urlpath=%2Fvoila%2Frender%2FOIRAXMLtoCSV.ipynb
