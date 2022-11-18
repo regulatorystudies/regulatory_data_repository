@@ -1,5 +1,7 @@
 # Regulatory Data Repository (Preliminary)
 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/zhoudanxie/regulatory_data_repository/HEAD)
+
 This Data Repository consolidates public data on federal rulemakings that are frequently used in research related to regulation. The purpose of this repository is to provide clean, organized, and comprehensive data to facilitate research on regulation.
 
 This repository will be complemented and updated routinely.
