@@ -3,15 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import zipfile
-import xml.etree.ElementTree as et
-from lxml import etree
 import time
-from lxml.etree import fromstring
-import pathlib
-import textwrap
-import io
-import re
-from bs4 import BeautifulSoup, NavigableString, Tag
 from tqdm import tqdm
 from pathlib import Path
 
