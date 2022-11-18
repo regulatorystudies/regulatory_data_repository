@@ -1,3 +1,9 @@
 elementpath
 csv
 sys
+pandas
+requests
+beautifulsoup4
+zipfile36
+tqdm
+pathlib
