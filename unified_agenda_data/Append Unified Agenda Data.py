@@ -109,19 +109,3 @@ df_all_copy=df_all_copy.sort_values(['publication_date','RIN']).reset_index(drop
 df_all_copy.to_csv('Unified Agenda Data/Unified Agenda 199510-202104.csv',index=False)
 
 
-
-#-----------------------------------------------------------------------------------------------------------------------
-# FR API
-import urllib
-import json
-import pandas as pd
-
-df=pd.DataFrame(columns=['title'])
-url="https://www.federalregister.gov/api/v1/documents.json?fields[]=abstract&fields[]=agencies&fields[]=citation&fields[]=docket_id&fields[]=document_number&fields[]=publication_date&fields[]=title&per_page=1000&order=newest&conditions[publication_date][gte]=2021-01-01&conditions[publication_date][lte]=2021-06-17&conditions[type][]=RULE&conditions[type][]=PRORULE"
-request = urllib.request.urlopen(url)
-json_parsed = json.loads(request.read())
-for i in range(len(json_parsed['results'])):
-    title=json_parsed['results'][i]['title']
-    df = df.append({'title': title}, ignore_index=True)
-
-
