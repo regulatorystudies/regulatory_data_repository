@@ -1,5 +1,4 @@
 elementpath
-csv
 sys
 pandas
 requests
