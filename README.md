@@ -33,9 +33,9 @@ This folder contains Python code to obtain and organize data on rulemaking actio
 
 ## 4. Regulatory Forms Data
 
-## 5. Other Data
+## 5. Useful Tools
 
-
+This folder contains Python code that may be useful for conducting some basic data analysis, such as generating page/word/character counts and readability scores for a batch of PDF/Word documents.
 
 
  
