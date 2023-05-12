@@ -11,7 +11,7 @@ The current version of the repository contains the following data sets:
 
 ## 1. Unified Agenda Data
 
-This data set contains data for all rulemakings published in the semiannual [Unified Agenda of Regulatory and Deregulatory Actions {_ext}](https://www.reginfo.gov/public/do/eAgendaMain) since Fall 1995. It includes most of the information you would find on a Unified Agenda page (for example, [RIN 2060-AN53](https://www.reginfo.gov/public/do/eAgendaViewRule?pubId=200604&RIN=2060-AN53)), including RIN, rule title, abstract, agency, priority category (economically significant, significant, etc.), RIN status, rule stage, CFR citation, legal authority, and timetable (i.e., action, data, and FR citation). 
+This data set contains data for all rulemakings published in the semiannual [Unified Agenda of Regulatory and Deregulatory Actions](https://www.reginfo.gov/public/do/eAgendaMain){:target="_blank"} since Fall 1995. It includes most of the information you would find on a Unified Agenda page (for example, [RIN 2060-AN53](https://www.reginfo.gov/public/do/eAgendaViewRule?pubId=200604&RIN=2060-AN53)), including RIN, rule title, abstract, agency, priority category (economically significant, significant, etc.), RIN status, rule stage, CFR citation, legal authority, and timetable (i.e., action, data, and FR citation). 
 
 |            |  Unified Agenda Data                                                           | 
 | :-------- | :------------------------------------------------------------------------------ |
