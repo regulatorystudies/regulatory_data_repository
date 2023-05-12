@@ -19,4 +19,4 @@ The Python code in this folder downloads [XML reports of the Unified Agenda](htt
 | CFR | The Code of Federal Regulations (CFR) parts that the rulemaking action adds or amends |
 | legal_authority | The public law or U.S. code that authorizes the rulemaking action |
 | legal_deadline |	Legal deadlines for the rulemaking action (if any); multiple columns if there are multiple deadlines    |
-| action |	Actions since the rulemaking was initiated until the Unified Agenda was published (e.g., NPRM and its publication date and FR cite); multiple columns if there are multiple actions |
+| action |	Actions that occurred during the time from the rulemaking was initiated until the Unified Agenda was published (e.g., NPRM and its publication date and FR cite); multiple columns if there are multiple actions |
