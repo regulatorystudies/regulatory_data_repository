@@ -2,42 +2,36 @@
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/zhoudanxie/regulatory_data_repository/HEAD)
 
-This Data Repository consolidates public data on federal rulemakings that are frequently used in research related to regulation. The purpose of this repository is to provide clean, organized, and comprehensive data to facilitate research on regulation.
+This repository provides Python code and tools to obtain and use publicly available data on federal rulemakings. The purpose of this repository is to facilitate research on regulation using government big data.
 
 This repository will be complemented and updated routinely.
 
-The current version of the repository contains the following data sets:
+The current version of the repository contains the following foders:
 
 
 ## 1. Unified Agenda Data
 
-This data set contains data for all rulemakings published in the semiannual [Unified Agenda of Regulatory and Deregulatory Actions](https://www.reginfo.gov/public/do/eAgendaMain){:target="_blank"} since Fall 1995. It includes most of the information you would find on a Unified Agenda page (for example, [RIN 2060-AN53](https://www.reginfo.gov/public/do/eAgendaViewRule?pubId=200604&RIN=2060-AN53)), including RIN, rule title, abstract, agency, priority category (economically significant, significant, etc.), RIN status, rule stage, CFR citation, legal authority, and timetable (i.e., action, data, and FR citation). 
+This folder contains Python code to obtain and organize data from the semiannual [Unified Agenda of Regulatory and Deregulatory Actions](https://www.reginfo.gov/public/do/eAgendaMain) since Fall 1995. The code will generate a clean CSV file covering all the rulemaking actions published in user-specified Unified Agendas. For each action, the CSV file contains most of the information you can find on a Unified Agenda page (for example, [RIN 2060-AN53](https://www.reginfo.gov/public/do/eAgendaViewRule?pubId=200604&RIN=2060-AN53)), including RIN, rule title, abstract, agency, priority (i.e., economically significant, significant, etc.), RIN status, rule stage, CFR citation, legal authority, legal deadlines, and timetable (i.e., action, data, and FR citation). 
 
 |            |  Unified Agenda Data                                                           | 
 | :-------- | :------------------------------------------------------------------------------ |
 | Source:    | [Reginfo.gov Unified Agenda XML Reports](https://www.reginfo.gov/public/do/eAgendaXmlReport)   |
-| Timeframe: | Fall 1995 - Spring 2021                                                          |
-| Number of data points: | 208,387                                                            |
-| Last updated:	|	July 22, 2021	|
+| Timeframe: | Fall 1995 - The latest available date                                                          |
 
 
 ## 2. OIRA Review Data
 
-This data set contains data for all regulatory actions reviewed by the Office of Information and Regulatory Affairs since 1981. It includes the RIN, rule title, agency code, agency name, date and year received, date and year completed, rule stage, economic significance (Y/N), major rule status (Y/N), legal deadline, and decision.
+This folder contains Python code to obtain and organize data on rulemaking actions reviewed by the Office of Information and Regulatory Affairs (OIRA) since 1981. The code will generate a clean CSV file covering all the actions reviewed by OIRA during user-specified years. The CSV file contains information on each action including RIN, rule title, agency code, agency name, date and year received, date and year completed, rule stage, economic significance (Y/N), major rule status (Y/N), legal deadline, and decision.
 
 |            |  OIRA Review Data        | 
 | :--------  | :----------------------- |
 | Source:    | [Reginfo.gov Regulatory Review XML Reports](https://www.reginfo.gov/public/do/XMLReportList) |
-| Timeframe: | 1981 - 2021              |
-| Number of data points: | 46,026       |                                                      
-| Last updated:	|	March 8, 2022	|
+| Timeframe: | 1981 - The latest available year            |                                                     
 
 
-## 3. Regulatory Forms Data
+## 3. Federal Register Data
 
-
-## 4. Federal Register Data
-
+## 4. Regulatory Forms Data
 
 ## 5. Other Data
 
