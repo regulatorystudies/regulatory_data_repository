@@ -15,8 +15,8 @@ The Python code in this folder downloads [XML reports of the Unified Agenda](htt
 | priority  | Significance designation of the rulemaking action as defined in Executive Order 12866 (e.g., economically significant, other significant) |
 | RIN_status  | Whether the rulemaking action was first time or previously published in the Unified Agenda  |
 | rule_stage | Stage of the rulemaking action (e.g., proposed rule stage, final rule stage) | 
-| major |   Whether the rulemaking action is designated as a major rule as defined in the Congressional Review Act  |
-| CFR | The CFR parts that the rulemaking action adds or amends (Yes/No/Undetermined) |
+| major |   Whether the rulemaking action is designated as a major rule as defined in the Congressional Review Act (Yes/No/Undetermined)  |
+| CFR | The Code of Federal Regulations (CFR) parts that the rulemaking action adds or amends |
 | legal_authority | The public law or U.S. code that authorizes the rulemaking action |
 | legal_deadline |	Legal deadlines for the rulemaking action (if any); multiple columns if there are multiple deadlines    |
 | action |	Actions since the rulemaking was initiated until the Unified Agenda was published (e.g., NPRM and its publication date and FR cite); multiple columns if there are multiple actions |
