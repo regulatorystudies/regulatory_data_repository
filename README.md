@@ -1,7 +1,5 @@
 # Regulatory Data Repository (Preliminary)
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/zhoudanxie/regulatory_data_repository/HEAD)
-
 This repository provides Python code and tools to obtain and use publicly available data on federal rulemakings. The purpose of this repository is to facilitate research on regulation using government big data.
 
 This repository will be complemented and updated routinely.
