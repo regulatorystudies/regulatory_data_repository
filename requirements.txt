@@ -1,8 +1,0 @@
-elementpath
-sys
-pandas
-requests
-beautifulsoup4
-zipfile36
-tqdm
-pathlib
