@@ -9,7 +9,7 @@ The current version of the repository contains the following foders:
 
 ## 1. Unified Agenda Data
 
-This folder contains Python code to obtain and organize data from the semiannual [Unified Agenda of Regulatory and Deregulatory Actions](https://www.reginfo.gov/public/do/eAgendaMain) since Fall 1995. The code will generate a clean CSV file covering all the rulemaking actions published in user-specified Unified Agendas. For each action, the CSV file contains most of the information you can find on a Unified Agenda page (for example, [RIN 2060-AN53](https://www.reginfo.gov/public/do/eAgendaViewRule?pubId=200604&RIN=2060-AN53)), including RIN, rule title, abstract, agency, priority (i.e., economically significant, significant, etc.), RIN status, rule stage, CFR citation, legal authority, legal deadlines, and timetable (i.e., action, data, and FR citation). 
+This folder contains Python code to obtain and organize data from the semiannual [Unified Agenda of Regulatory and Deregulatory Actions](https://www.reginfo.gov/public/do/eAgendaMain) since Fall 1995. The code will generate a clean CSV file covering the rulemaking actions published in the Unified Agendas that an user specifies. For each action, the CSV file contains most of the information available on a Unified Agenda page (see an example [here](https://www.reginfo.gov/public/do/eAgendaViewRule?pubId=200604&RIN=2060-AN53)), including RIN, rule title, abstract, agency, priority (i.e., economically significant, significant, etc.), RIN status, rule stage, CFR citation, legal authority, legal deadlines, and timetable (i.e., action, date, and FR citation). 
 
 |            |  Unified Agenda Data                                                           | 
 | :-------- | :------------------------------------------------------------------------------ |
@@ -19,7 +19,7 @@ This folder contains Python code to obtain and organize data from the semiannual
 
 ## 2. OIRA Review Data
 
-This folder contains Python code to obtain and organize data on rulemaking actions reviewed by the Office of Information and Regulatory Affairs (OIRA) since 1981. The code will generate a clean CSV file covering all the actions reviewed by OIRA during user-specified years. The CSV file contains information on each action including RIN, rule title, agency code, agency name, date and year received, date and year completed, rule stage, economic significance (Y/N), major rule status (Y/N), legal deadline, and decision.
+This folder contains Python code to obtain and organize data on rulemaking actions reviewed by the Office of Information and Regulatory Affairs (OIRA) since 1981. The code will generate a clean CSV file covering all the actions reviewed by OIRA during the time period that an user specifies. The CSV file contains information on each action including RIN, rule title, agency code, agency name, date and year received, date and year completed, rule stage, economic significance, major rule status, legal deadline, and decision.
 
 |            |  OIRA Review Data        | 
 | :--------  | :----------------------- |
