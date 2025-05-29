@@ -6,7 +6,6 @@ from lxml import etree
 import numpy as np
 import requests
 import re
-import matplotlib.pyplot as plt
 pd.set_option('display.width', 1000)
 pd.set_option('display.max_columns', 10)
 import datetime
@@ -16,6 +15,9 @@ import inflect
 import warnings
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 from matplotlib import rcParams
 rcParams['font.family'] = "Times New Roman"
 
@@ -29,7 +31,17 @@ admin_year = {'Clinton': [1993, 2001],
               'Trump 47': [2025, 2029]}
 
 #%% Set directory
-directory="unified_agenda_data"
+# directory="unified_agenda_data"
+directory=os.path.dirname(os.path.realpath(__file__))
+
+#%% Create subdirectories if not exist
+folder_path1=f"{directory}/raw_data"
+if not os.path.exists(folder_path1):
+    os.makedirs(folder_path1)
+
+folder_path1=f"{directory}/output"
+if not os.path.exists(folder_path1):
+    os.makedirs(folder_path1)
 
 #%% Function to convert date
 def convert_date(str):
@@ -68,6 +80,8 @@ def import_xml(file,year,midnight=0):
             df_xml.at[row, 'rule_stage']=child.find('RULE_STAGE').text
         if child.find('MAJOR')!=None:
             df_xml.at[row, 'major']=child.find('MAJOR').text
+        else:
+            df_xml.at[row, 'major']=None
 
         if child.find('CFR_LIST')!=None:
             index=0
@@ -192,7 +206,7 @@ def import_excel(year,season='fall',midnight=0):
                            'department_name', 'abstract', 'priority', 'major', 'RIN_status', 'rule_stage', 'CFR']
                             + la_cols + fr_cols]
         df.to_excel(excel_path, index=False)
-        print(f'Unified Agenda {year}{season_no}.xlsx has been saved.')
+        # print(f'Unified Agenda {year}{season_no}.xlsx has been saved.')
     else:
         df=pd.read_excel(excel_path)
 
@@ -329,8 +343,8 @@ if agenda_midnight==1:
 
     # Potential midnight regulations
     df_es['midnight'] = 0
-    df_es.loc[(df_es['action_date2'] < datetime.datetime(2025, 2, 1)) &
-              (df_es['action_date2'] > datetime.datetime(2024, 11, 30)), 'midnight'] = 1
+    df_es.loc[(df_es['action_date2'] < datetime.datetime(agenda_year+1, 2, 1)) &
+              (df_es['action_date2'] > datetime.datetime(agenda_year, 11, 30)), 'midnight'] = 1
     # print(df_es['midnight'].value_counts())
     # print(df_es[df_es['midnight'] == 1]['action_type'].value_counts(dropna=False))
 
@@ -379,7 +393,7 @@ else:
     df_es_agency.rename(columns={'count':'count_total'},inplace=True)
 
 #%% Top 10 agencies
-# Agency dictionary
+# Agency dictionary (update this if a top agency is not included)
 agency_dict={'Department of Health and Human Services':'HHS',
              'Department of the Treasury':'TREAS',
              'Small Business Administration':'SBA',
@@ -391,7 +405,8 @@ agency_dict={'Department of Health and Human Services':'HHS',
              'Department of Homeland Security':'DHS',
              'Department of Veterans Affairs':'VA',
              'Department of Agriculture':'USDA',
-             'Department of the Interior':'DOI'}
+             'Department of the Interior':'DOI',
+             'Nuclear Regulatory Commission':'NRC'}
 
 df_es_agency=df_es_agency[0:10]
 df_es_agency['department_acronym']=[agency_dict[i] for i in df_es_agency['department_name']]
@@ -473,7 +488,8 @@ if agenda_midnight==1:
     df_midnight['unified_agenda']=f'{agenda_season.capitalize()} {agenda_year}'
     df_midnight['abstract']=df_midnight['abstract'].apply(remove_html)
 
-    df_midnight.drop(['stage','action_date2','midnight'],axis=1).to_excel(f'{directory}/output/Potential Midnight Regulations.xlsx',index=False)
+    df_midnight.drop(['stage','action_date2','midnight'],axis=1).\
+        to_excel(f'{directory}/output/Potential Midnight Regulations in {agenda_season.capitalize()} {agenda_year} Unified Agenda.xlsx',index=False)
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -625,14 +641,34 @@ for admin, (start, end) in admin_year.items():
         agenda_admin=admin
         break
 
-# Aggregate current agenda
+# Aggregate ES actions by stage in current agenda
 df_es_stage=df[(df['priority']=='Economically Significant') |
                (df['priority']=='Section 3(f)(1) Significant')]['stage'].\
                value_counts(dropna=False).reset_index(name=f'{agenda_admin}\n({agenda_season.capitalize()} {agenda_year})')
 
+# Aggregate significant actions by priority in current agenda
+def sig_filter(df):
+    df.loc[(df['priority']=='Economically Significant') |
+           (df['priority']=='Section 3(f)(1) Significant'),'priority']=\
+           'Economically Significant'
+    df_sig=df[(df['priority']=='Economically Significant') |
+              (df['priority']=='Other Significant')].reset_index(drop=True)
+    return df_sig
+
+df_sig_stage=sig_filter(df)
+df_sig_stage=df_sig_stage['priority'].value_counts(dropna=False).\
+            reset_index(name=f'{agenda_admin}\n({agenda_season.capitalize()} {agenda_year})')
+
+# Aggregate active significant actions by priority in current agenda
+df_active_sig_stage=sig_filter(df)
+df_active_sig_stage=df_active_sig_stage[df_active_sig_stage['stage']=='Active Actions']['priority'].value_counts(dropna=False).\
+            reset_index(name=f'{agenda_admin}\n({agenda_season.capitalize()} {agenda_year})')
+
 #%% Import previous UAs
-df_compare=df_es_stage
-for admin in [a for a in admin_year.keys() if a != agenda_admin]:
+df_compare_es=df_es_stage
+df_compare_sig=df_sig_stage
+df_compare_active_sig=df_active_sig_stage
+for admin in [a for a in reversed(list(admin_year.keys())) if a != agenda_admin]:
     if n=='last':
         year_add_admin=admin_year[admin][1]
     else:
@@ -642,24 +678,39 @@ for admin in [a for a in admin_year.keys() if a != agenda_admin]:
         # Import
         df_admin=import_excel(year_add_admin,agenda_season)
 
-        # Aggregate by stage
+        # Aggregate ES actions by stage in previous agenda
         df_admin = convert_stage(df_admin)
         df_admin_es = df_admin[(df_admin['priority']=='Economically Significant') |
                                (df_admin['priority']=='Section 3(f)(1) Significant')]['stage'].\
                                value_counts(dropna=False).reset_index(name=f'{admin}\n({agenda_season.capitalize()} {year_add_admin})')
-
         # Merge
-        df_compare = df_compare.merge(df_admin_es, on='stage', how='outer')
+        df_compare_es = df_compare_es.merge(df_admin_es, on='stage', how='outer')
+
+        # Aggregate significant actions by priority in previous agenda
+        df_admin_sig=sig_filter(df_admin)
+        df_admin_sig = df_admin_sig['priority'].value_counts(dropna=False). \
+                        reset_index(name=f'{admin}\n({agenda_season.capitalize()} {year_add_admin})')
+        # Merge
+        df_compare_sig = df_compare_sig.merge(df_admin_sig, on='priority', how='outer')
+
+        # Aggregate active significant actions by priority in previous agenda
+        df_admin_active_sig=sig_filter(df_admin)
+        df_admin_active_sig = df_admin_active_sig[df_admin_active_sig['stage'] == 'Active Actions']['priority'].value_counts(dropna=False). \
+            reset_index(name=f'{admin}\n({agenda_season.capitalize()} {year_add_admin})')
+        # Merge
+        df_compare_active_sig = df_compare_active_sig.merge(df_admin_active_sig, on='priority', how='outer')
 
 # Set index
-df_compare.set_index('stage',inplace=True)
+df_compare_es.set_index('stage',inplace=True)
+df_compare_sig.set_index('priority',inplace=True)
+df_compare_active_sig.set_index('priority',inplace=True)
 
-#%% Plot stacked bar for ES actions by stage
 # n to words
 p = inflect.engine()
 n_word=p.ordinal(n) if isinstance(n, int) else n
 
-ax = df_compare.T.plot.bar(stacked=True, figsize=(12, 7), rot=0, color=['#033C5A','#0190DB','#AA9868'])
+#%% Plot stacked bar for ES actions by stage
+ax = df_compare_es.T.plot.bar(stacked=True, figsize=(12, 7), rot=0, color=['#033C5A','#0190DB','#AA9868'])
 for c in ax.containers:
     ax.bar_label(c, label_type='center',color='white', fontsize=12)
 
@@ -679,34 +730,8 @@ ax.spines['bottom'].set_color('#d3d3d3')
 plt.savefig(f'{directory}/output/{n_word.capitalize()} Agendas under Administrations.jpg', bbox_inches='tight')
 plt.close()
 
-#%% Other significant rules by administration
-print('Bush:',len(df_bush[df_bush['priority']=='Other Significant']))
-print('Obama:',len(df_obama[df_obama['priority']=='Other Significant']))
-print('Trump:',len(df_trump[df_trump['priority']=='Other Significant']))
-print('Biden:',len(df[df['priority']=='Other Significant']))
-
-#%% Significant actions
-def rename_es(df):
-    df.loc[(df['priority']=='Economically Significant') | (df['priority']=='Section 3(f)(1) Significant'),'priority']=\
-        'Economically or Section 3(f)(1) Significant'
-    return df
-
-df_bush_sig=rename_es(df_bush)['priority'].value_counts(dropna=False).\
-            reset_index(name=f'W. Bush\n({season_current.capitalize()} {year_bush})')
-df_obama_sig=rename_es(df_obama)['priority'].value_counts(dropna=False).\
-            reset_index(name=f'Obama\n({season_current.capitalize()} {year_obama})')
-df_trump_sig=rename_es(df_trump)['priority'].value_counts(dropna=False).\
-            reset_index(name=f'Trump\n({season_current.capitalize()} {year_trump})')
-df_biden_sig=rename_es(df_biden)['priority'].value_counts(dropna=False).\
-            reset_index(name=f'Biden\n({season_current.capitalize()} {year_current})')
-
-df_compare=df_bush_sig.merge(df_obama_sig,on='index',how='outer').merge(df_trump_sig,on='index',how='outer').\
-                merge(df_biden_sig,on='index',how='outer')
-df_compare=df_compare.set_index('index')
-df_compare=df_compare[(df_compare.index=='Economically or Section 3(f)(1) Significant') | (df_compare.index=='Other Significant')]
-
 #%% Plot stacked bar for significant actions
-ax = df_compare.T.plot.bar(stacked=True, figsize=(12, 7), rot=0, color=['#033C5A','#0190DB'])
+ax = df_compare_sig.T.plot.bar(stacked=True, figsize=(12, 7), rot=0, color=['#033C5A','#0190DB'])
 for c in ax.containers:
     ax.bar_label(c, label_type='center',color='white', fontsize=12)
 
@@ -714,7 +739,7 @@ ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.22), ncol=3, fontsize=14)
 ax.set_ylabel('Number of Actions', fontsize=12)
 ax.tick_params(axis='y',which='major',labelsize=12,color='#d3d3d3')
 ax.tick_params(axis='x',which='major',labelsize=14,color='#d3d3d3')
-ax.set_title(f"Figure 2: Significant Actions Published in the {n.capitalize()} Unified Agenda\nunder Different Administrations",
+ax.set_title(f"Significant Actions Published in the {n_word.capitalize()} Unified Agenda\nunder Different Administrations",
              fontsize=18)
 
 # Borders
@@ -723,26 +748,11 @@ ax.spines['right'].set_visible(False)
 ax.spines['left'].set_color('#d3d3d3')
 ax.spines['bottom'].set_color('#d3d3d3')
 
-plt.savefig(f'Figures/Significant Actions in the {n.capitalize()} Agendas under Administrations.jpg', bbox_inches='tight')
+plt.savefig(f'{directory}/output/Significant Actions in the {n_word.capitalize()} Agendas under Administrations.jpg', bbox_inches='tight')
 plt.close()
-
-
-#%% Active Significant actions
-df_bush_sig=df_bush[df_bush['stage']=='Active Actions']['priority'].value_counts(dropna=False).\
-            reset_index(name=f'W. Bush\n({season_current.capitalize()} {year_bush})')
-df_obama_sig=df_obama[df_obama['stage']=='Active Actions']['priority'].value_counts(dropna=False).\
-            reset_index(name=f'Obama\n({season_current.capitalize()} {year_obama})')
-df_trump_sig=df_trump[df_trump['stage']=='Active Actions']['priority'].value_counts(dropna=False).\
-            reset_index(name=f'Trump\n({season_current.capitalize()} {year_trump})')
-df_biden_sig=df_biden[df_biden['stage']=='Active Actions']['priority'].value_counts(dropna=False).\
-            reset_index(name=f'Biden\n({season_current.capitalize()} {year_current})')
-
-df_compare=df_bush_sig.merge(df_obama_sig,on='index',how='outer').merge(df_trump_sig,on='index',how='outer').\
-                merge(df_biden_sig,on='index',how='outer').set_index('index')
-df_compare=df_compare[(df_compare.index=='Economically or Section 3(f)(1) Significant') | (df_compare.index=='Other Significant')]
 
 #%% Plot stacked bar for active significant actions
-ax = df_compare.T.plot.bar(stacked=True, figsize=(12, 7), rot=0, color=['#033C5A','#0190DB'])
+ax = df_compare_active_sig.T.plot.bar(stacked=True, figsize=(12, 7), rot=0, color=['#033C5A','#0190DB'])
 for c in ax.containers:
     ax.bar_label(c, label_type='center',color='white', fontsize=12)
 
@@ -750,7 +760,7 @@ ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.22), ncol=3, fontsize=14)
 ax.set_ylabel('Number of Actions', fontsize=12)
 ax.tick_params(axis='y',which='major',labelsize=12,color='#d3d3d3')
 ax.tick_params(axis='x',which='major',labelsize=14,color='#d3d3d3')
-ax.set_title(f"Figure 2: Active Significant Actions Published in the {n.capitalize()} Unified Agenda\nunder Different Administrations",
+ax.set_title(f"Active Significant Actions Published in the {n_word.capitalize()} Unified Agenda\nunder Different Administrations",
              fontsize=18)
 
 # Borders
@@ -759,29 +769,21 @@ ax.spines['right'].set_visible(False)
 ax.spines['left'].set_color('#d3d3d3')
 ax.spines['bottom'].set_color('#d3d3d3')
 
-# Add note
-txt="Note: Light blue bars indicate section 3(f)(1) significant actions published in the Fall 2024 Unified Agenda " \
-    "and economically significant\nactions in the previous Agendas."
-plt.figtext(0.11, -0.12, txt, horizontalalignment='left', fontsize=12)
+# # Add note
+# txt="Note: Light blue bars indicate section 3(f)(1) significant actions published in the Fall 2024 Unified Agenda " \
+#     "and economically significant\nactions in the previous Agendas."
+# plt.figtext(0.11, -0.12, txt, horizontalalignment='left', fontsize=12)
 # fig.subplots_adjust(bottom=0.25)
 
-plt.savefig(f'Figures/Active Significant Actions in the {n.capitalize()} Agendas under Administrations.jpg', bbox_inches='tight')
-# plt.savefig(f'Figures/Figure2_notitle.jpg', bbox_inches='tight')
+plt.savefig(f'{directory}/output/Active Significant Actions in the {n_word.capitalize()} Agendas under Administrations.jpg', bbox_inches='tight')
 plt.close()
 
-#%% Compare with previous administrations by agency
-def print_agency(df,agency):
-    df['department_name'].fillna(df['agency_name'], inplace=True)
-    print(agency,len(df[(df['department_name']==agency) &
-                        (df['priority']=='Economically or Section 3(f)(1) Significant')]))
+#%% Clean raw data files
+raw_path = f'{directory}/raw_data'
+for filename in os.listdir(raw_path):
+    file_path = os.path.join(raw_path, filename)
+    if os.path.isfile(file_path):
+        os.remove(file_path)
 
-top_agencies=df_es['index'].tolist()
-
-for i in range(len(top_agencies)):
-    print('Bush vs. Obama vs. Trump vs. Biden:')
-    print_agency(df_bush,top_agencies[i])
-    print_agency(df_obama,top_agencies[i])
-    print_agency(df_trump,top_agencies[i])
-    print_agency(df_biden,top_agencies[i])
-
-#-----------------------------------------------------------------------------------------------------------------------
+#%% End
+print("End of execution! See the Output folder for charts and datasets.")
