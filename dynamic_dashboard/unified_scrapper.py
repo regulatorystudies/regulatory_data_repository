@@ -34,7 +34,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-st.image("/Users/sayam_palrecha/my_project/GW_Regulatory/Regulatory_data/logo.png",use_column_width=True)
+st.image("images/logo.png",use_column_width=True)
 
 
 
@@ -74,7 +74,7 @@ with tab1:
 
     if st.button("More Information"):
         st.write("More Information about the dataset")
-        st.image("/Users/sayam_palrecha/my_project/GW_Regulatory/Regulatory_data/data.png")
+        st.image("images/data.png")
 
     if st.button("Display Data"):
         st.info("Collecting data, please wait...")
