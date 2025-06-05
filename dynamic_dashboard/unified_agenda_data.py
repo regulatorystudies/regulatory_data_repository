@@ -11,8 +11,9 @@ import re
 pd.set_option('display.width', 1000)
 pd.set_option('display.max_columns', 10)
 import streamlit as st
+
 # Set directory
-directory= '/Users/sayam_palrecha/my_project/GW_Regulatory/Regulatory_data/output/'
+dir_path=os.path.dirname(os.path.realpath(__file__))
 
 # @title
 #%% All sub-functions

@@ -6,7 +6,6 @@ from xml.etree import ElementTree
 import csv
 from datetime import datetime
 import sys
-import ipywidgets as widgets
 import warnings
 
 # Ignore warnings
@@ -19,12 +18,14 @@ pd.set_option('display.width', 1000)
 pd.set_option('display.max_columns', 10)
 from lxml import etree
 import requests
-import ipywidgets as widgets
 
 # !pip install pandas_read_xml | grep -v 'already satisfied'
 
 import pandas_read_xml as pdx
 from pandas_read_xml import flatten, fully_flatten, auto_separate_tables
+
+# Set directory
+dir_path=os.path.dirname(os.path.realpath(__file__))
 
 # @title
 # Fetch current year
@@ -35,7 +36,7 @@ current_year = current_time.year
 # Download agency name & code crosswalk
 #download xml file
 url_agy = 'https://raw.githubusercontent.com/zhoudanxie/regulatory_data_repository/main/other_data/AGY_AGENCY_LIST.xml'
-path_agy = '/Users/sayam_palrecha/my_project/GW_Regulatory/Regulatory_data/AGY_AGENCY_LIST.xml'
+path_agy = f'{dir_path}/AGY_AGENCY_LIST.xml'
 r = requests.get(url_agy, allow_redirects=True)
 open(path_agy, 'wb').write(r.content)
 
