@@ -13,7 +13,7 @@ pd.set_option('display.max_columns', 10)
 import streamlit as st
 
 # Set directory
-dir_path=os.path.dirname(os.path.realpath(__file__))
+directory=os.path.dirname(os.path.realpath(__file__))
 
 # @title
 #%% All sub-functions
