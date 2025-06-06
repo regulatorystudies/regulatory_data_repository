@@ -34,7 +34,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-st.image("images/logo.png",use_column_width=True)
+st.image("images/logo.png",use_container_width=True)
 
 
 
