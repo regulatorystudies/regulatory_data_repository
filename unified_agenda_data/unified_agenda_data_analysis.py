@@ -22,6 +22,7 @@ from matplotlib import rcParams
 rcParams['font.family'] = "Times New Roman"
 
 #%% Define administrations and their start & end years
+# UPDATE WHEN NEW ADMIN
 admin_year = {'Clinton': [1993, 2001],
               'Bush 43': [2001, 2009],
               'Obama': [2009, 2017],
@@ -32,7 +33,7 @@ admin_year = {'Clinton': [1993, 2001],
 #%% Set directory
 directory=os.path.dirname(os.path.realpath(__file__))
 
-#%% Create subdirectories if not exist
+#%% Create subdirectories if they do not exist
 for sub in ("raw_data","output"):
     folder_path=f"{directory}/{sub}"
     if not os.path.exists(folder_path):
@@ -388,22 +389,24 @@ if agenda_midnight==1:
     df_midnight['abstract']=df_midnight['abstract'].apply(remove_html)
     df_midnight.drop(['stage','action_date2','midnight'],axis=1).to_excel(f'{directory}/output/Potential Midnight Regulations in {agenda_season.capitalize()} {agenda_year} Unified Agenda.xlsx',index=False)
 
-# --- helpers for stable order & locked colors ---
+# Helper function for stable presidential order & locked colors
 def order_stacks_and_colors(df_rows, row_order, color_map):
     df_ordered = df_rows.reindex(row_order)
     colors = [color_map[r] for r in df_ordered.index]
     return df_ordered, colors
 
-# Robust regex-based admin extraction and strict ordering on the TRANSPOSED DF
+# Admin extraction and strict ordering on the Transposed DF
 import re as _re
-ADMIN_PATTERN = _re.compile(r'^(Clinton|Bush 43|Obama|Trump 45|Biden|Trump 47)\b', _re.IGNORECASE)
+# UPDATE WHEN NEW ADMIN
+admin_pattern = _re.compile(r'^(Clinton|Bush 43|Obama|Trump 45|Biden|Trump 47)\b', _re.IGNORECASE)
 
 def extract_admin(label: str):
     if label is None:
         return None
-    m = ADMIN_PATTERN.search(str(label).strip())
+    m = admin_pattern.search(str(label).strip())
     if not m:
         return None
+    # UPDATE WHEN NEW ADMIN
     canon = {
         'clinton': 'Clinton',
         'bush 43': 'Bush 43',
@@ -415,10 +418,8 @@ def extract_admin(label: str):
     return canon[m.group(1).lower()]
 
 def filter_and_order_admins_on_T(dfT, admin_order):
-    """
-    dfT: transposed DF (x-axis = dfT.index). Keep ONLY rows whose admin matches ADMIN_PATTERN,
-    then order strictly by admin_order using categorical sort.
-    """
+
+    # dfT = df Transposed (x-axis = dfT.index). Keep only rows whose admin matches admin_pattern, then order strictly by admin_order using categorical sort.
     idx = dfT.index.to_series()
     admins = idx.map(extract_admin)
     mask = admins.isin(admin_order)
@@ -428,7 +429,8 @@ def filter_and_order_admins_on_T(dfT, admin_order):
     dfT2 = dfT2.iloc[cat.argsort(kind="stable")]
     return dfT2
 
-# Your strict left-to-right order (Bush 43 before Obama)
+# strict left-to-right x-axis admin order (became necessary to add due to previous bug where order was right-to-left)
+# UPDATE WHEN NEW ADMIN
 admin_order = ["Bush 43", "Obama", "Trump 45", "Biden", "Trump 47"]
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -503,12 +505,12 @@ if not ((agenda_year in [years[0] for years in admin_year.values()]) and (agenda
         df_compare=df_compare.merge(df_stage,on='stage',how='outer')
     df_compare=df_compare.set_index('stage')
 
-    # ----- LOCKED stage order & colors for this chart -----
+    # locked stage order & colors for this chart
     stage_order_biden = ["Active Actions", "Completed Actions", "Long-Term Actions"]
     stage_colors_map = {
-        "Active Actions": "#033C5A",   # dark blue
-        "Completed Actions": "#0190DB",# light blue
-        "Long-Term Actions": "#AA9868" # buff/tan
+        "Active Actions": "#033C5A",
+        "Completed Actions": "#0190DB",
+        "Long-Term Actions": "#AA9868"
     }
     df_plot_prev, colors_prev = order_stacks_and_colors(df_compare, stage_order_biden, stage_colors_map)
 
@@ -602,12 +604,12 @@ df_compare_active_sig.set_index('priority',inplace=True)
 p = inflect.engine()
 n_word=p.ordinal(n) if isinstance(n, int) else n
 
-# ---------- Plot 1: ES actions by stage (admin comparison with LOCKED STAGE COLORS) ----------
+# ---------- Plot 1: ES actions by stage ----------
 stage_order_main = ["Active Actions", "Completed Actions", "Long-Term Actions"]
 stage_colors_map = {
-    "Active Actions": "#033C5A",   # dark blue
-    "Completed Actions": "#0190DB",# light blue
-    "Long-Term Actions": "#AA9868" # buff/tan
+    "Active Actions": "#033C5A",
+    "Completed Actions": "#0190DB",
+    "Long-Term Actions": "#AA9868"
 }
 df_plot_es, colors_es = order_stacks_and_colors(df_compare_es, stage_order_main, stage_colors_map)
 dfT = filter_and_order_admins_on_T(df_plot_es.T, admin_order)
@@ -625,11 +627,11 @@ ax.spines['left'].set_color('#d3d3d3'); ax.spines['bottom'].set_color('#d3d3d3')
 plt.savefig(f'{directory}/output/{n_word.capitalize()} Agendas under Administrations.jpg', bbox_inches='tight')
 plt.close()
 
-# ---------- Plot 2: Significant actions (LOCKED PRIORITY COLORS) ----------
+# ---------- Plot 2: Significant actions ----------
 priority_order = ["Other Significant", "Economically Significant"]
 priority_colors_map = {
-    "Other Significant": "#033C5A",        # dark blue
-    "Economically Significant": "#0190DB", # light blue
+    "Other Significant": "#033C5A",
+    "Economically Significant": "#0190DB",
 }
 df_plot_sig = df_compare_sig.reindex(priority_order)
 colors_sig = [priority_colors_map[p] for p in df_plot_sig.index]
@@ -648,7 +650,7 @@ ax.spines['left'].set_color('#d3d3d3'); ax.spines['bottom'].set_color('#d3d3d3')
 plt.savefig(f'{directory}/output/Significant Actions in the {n_word.capitalize()} Agendas under Administrations.jpg', bbox_inches='tight')
 plt.close()
 
-# ---------- Plot 3: Active significant actions (LOCKED PRIORITY COLORS) ----------
+# ---------- Plot 3: Active significant actions ----------
 df_plot_active = df_compare_active_sig.reindex(priority_order)
 colors_active = [priority_colors_map[p] for p in df_plot_active.index]
 dfT = filter_and_order_admins_on_T(df_plot_active.T, admin_order)
