@@ -1,5 +1,6 @@
 import os
 import re
+import tempfile
 import warnings
 from typing import Optional
 
@@ -279,7 +280,9 @@ def season_transform(season: str) -> str:
     raise ValueError('Invalid season: use "spring" or "fall".')
 
 def download_file(
-    year, season, directory, status_callback):
+    year, season, directory, status_callback) -> Optional[pd.DataFrame]:
+    """Download a Unified Agenda XML, parse it in a tempfile, and return the
+    resulting DataFrame.  The raw XML is never written to a persistent path."""
     if year == 2012:
         file_name = f"REGINFO_RIN_DATA_{year}.xml"
         file_url = f"https://www.reginfo.gov/public/do/XMLViewFileAction?f=REGINFO_RIN_DATA_{year}.xml"
@@ -288,20 +291,18 @@ def download_file(
         file_name = f"REGINFO_RIN_DATA_{year}{season_no}.xml"
         file_url = f"https://www.reginfo.gov/public/do/XMLViewFileAction?f=REGINFO_RIN_DATA_{year}{season_no}.xml"
 
-    file_path = os.path.join(directory, file_name)
-    msg = f"{file_name} has been downloaded." if not os.path.exists(file_path) else f"{file_name} already exists."
-
     try:
-        if not os.path.exists(file_path):
-            r = requests.get(file_url, allow_redirects=True)
-            r.raise_for_status()
-            with open(file_path, "wb") as f:
-                f.write(r.content)
+        r = requests.get(file_url, allow_redirects=True)
+        r.raise_for_status()
+        with tempfile.NamedTemporaryFile(suffix='.xml', delete=True) as tmp:
+            tmp.write(r.content)
+            tmp.flush()
+            df = xml_to_csv(tmp.name)
         if status_callback:
-            status_callback(msg)
-        return file_path
+            status_callback(f"{file_name} downloaded and parsed.")
+        return df
     except Exception as e:
-        err_msg = f"ERROR: {file_name} cannot be downloaded. {e}"
+        err_msg = f"ERROR: {file_name} cannot be downloaded or parsed. {e}"
         if status_callback:
             status_callback(err_msg)
         return None
@@ -331,31 +332,27 @@ def collect_ua_data(
     end_season: str,
     directory: None,
     status_callback=None):
-    result_xml = []
-    result_csv = []
+    result_dfs = []
     sea_option = ["spring", "fall"]
 
     def log(msg):
         if status_callback:
             status_callback(msg)
+
     if end_year == start_year:
         if start_year == 2012:
-            path = download_file(start_year, "fall", directory, status_callback)
-            if path is None:
+            df = download_file(start_year, "fall", directory, status_callback)
+            if df is None:
                 return None
-            df = xml_to_csv(path)
             out_name = f"REGINFO_RIN_DATA_{start_year}.csv"
             df.to_csv(os.path.join(directory, out_name), index=False)
             log(f"Created {out_name}")
             return df
 
         if start_season == end_season:
-            path = download_file(
-                start_year, start_season, directory, status_callback
-            )
-            if path is None:
+            df = download_file(start_year, start_season, directory, status_callback)
+            if df is None:
                 return None
-            df = xml_to_csv(path)
             season_no = season_transform(start_season)
             out_name = f"REGINFO_RIN_DATA_{start_year}{season_no}.csv"
             df.to_csv(os.path.join(directory, out_name), index=False)
@@ -363,12 +360,10 @@ def collect_ua_data(
             return df
 
         # both seasons in same year
-        path1 = download_file(start_year, start_season, directory, status_callback)
-        path2 = download_file(end_year, end_season, directory, status_callback)
-        if path1 is None or path2 is None:
+        df1 = download_file(start_year, start_season, directory, status_callback)
+        df2 = download_file(end_year, end_season, directory, status_callback)
+        if df1 is None or df2 is None:
             return None
-        df1 = xml_to_csv(path1)
-        df2 = xml_to_csv(path2)
         df = pd.concat([df1, df2], ignore_index=True)
         df = reorder_columns(df)
         out_name = f"REGINFO_RIN_DATA_{start_year}{start_season}&{end_season}.csv"
@@ -378,51 +373,36 @@ def collect_ua_data(
 
     # Multiple years
     if start_year == 2012:
-        result_xml.append(
-            download_file(start_year, "fall", directory, status_callback)
-        )
+        result_dfs.append(download_file(start_year, "fall", directory, status_callback))
     else:
         if start_season == "fall":
-            result_xml.append(
-                download_file(start_year, start_season, directory, status_callback)
-            )
+            result_dfs.append(download_file(start_year, start_season, directory, status_callback))
         else:
             for s in sea_option:
-                result_xml.append(
-                    download_file(start_year, s, directory, status_callback)
-                )
+                result_dfs.append(download_file(start_year, s, directory, status_callback))
 
     for year in range(start_year + 1, end_year):
         if year == 2012:
-            result_xml.append(download_file(year, "fall", directory, status_callback))
+            result_dfs.append(download_file(year, "fall", directory, status_callback))
         else:
             for s in sea_option:
-                result_xml.append(
-                    download_file(year, s, directory, status_callback)
-                )
+                result_dfs.append(download_file(year, s, directory, status_callback))
 
     if end_year == 2012:
-        result_xml.append(download_file(end_year, "fall", directory, status_callback))
+        result_dfs.append(download_file(end_year, "fall", directory, status_callback))
     else:
         if end_season == "spring":
-            result_xml.append(
-                download_file(end_year, end_season, directory, status_callback)
-            )
+            result_dfs.append(download_file(end_year, end_season, directory, status_callback))
         else:
             for s in sea_option:
-                result_xml.append(
-                    download_file(end_year, s, directory, status_callback)
-                )
+                result_dfs.append(download_file(end_year, s, directory, status_callback))
 
     # Filter out failed downloads
-    result_xml = [p for p in result_xml if p is not None]
-    if not result_xml:
+    result_dfs = [d for d in result_dfs if d is not None]
+    if not result_dfs:
         return None
 
-    for path in result_xml:
-        result_csv.append(xml_to_csv(path))
-
-    df = pd.concat(result_csv, ignore_index=True)
+    df = pd.concat(result_dfs, ignore_index=True)
     df = reorder_columns(df)
     out_name = f"REGINFO_RIN_DATA_{start_year}{start_season}-{end_year}{end_season}.csv"
     df.to_csv(os.path.join(directory, out_name), index=False)

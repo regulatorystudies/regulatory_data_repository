@@ -2,6 +2,7 @@
 
 import pandas as pd
 import os
+import tempfile
 from lxml import etree
 import numpy as np
 import requests
@@ -99,16 +100,17 @@ def _agenda_year_for_admin_n(admin: str, n: int, season: str) -> int:
 
     raise ValueError(f"Administration {admin} does not have agenda #{n}.")
 
-#%% Set directory
-directory="unified_agenda_data"
-# directory=os.path.dirname(os.path.realpath(__file__))
+#%% Set directory — always resolved relative to this file, /tmp fallback if not writable
+_THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+_default_dir = _THIS_DIR if os.access(_THIS_DIR, os.W_OK) else os.path.join('/tmp', 'ua_analysis')
+directory = os.environ.get('UA_ANALYSIS_DIR', _default_dir)
 
 #%% Create subdirectories if not exist
-folder_path1=f"{directory}/raw_data"
+folder_path1 = os.path.join(directory, 'raw_data')
 if not os.path.exists(folder_path1):
     os.makedirs(folder_path1)
 
-folder_path1=f"{directory}/output"
+folder_path1 = os.path.join(directory, 'output')
 if not os.path.exists(folder_path1):
     os.makedirs(folder_path1)
 
@@ -286,7 +288,7 @@ def add_agenda_number(df):
 
     return df
 
-#%% Function to download an XML file
+#%% Function to download an XML file and return parsed DataFrame (no persistent XML on disk)
 def download_file(year, season_no='10'):
     if year == 2012:
         file_name = f'REGINFO_RIN_DATA_{year}.xml'
@@ -295,39 +297,48 @@ def download_file(year, season_no='10'):
         file_name = f'REGINFO_RIN_DATA_{year}{season_no}.xml'
         file_url = f'https://www.reginfo.gov/public/do/XMLViewFileAction?f=REGINFO_RIN_DATA_{year}{season_no}.xml'
 
-    file_path = f'{directory}/raw_data/{file_name}'
-
     try:
-        if not os.path.exists(file_path):
-            r = requests.get(file_url, allow_redirects=True)
-            open(file_path, 'wb').write(r.content)
-            print(f'{file_name} has been downloaded.')
-        else:
-            print(f'{file_name} already exists in the directory.')
+        r = requests.get(file_url, allow_redirects=True)
+        r.raise_for_status()
+        print(f'Downloading {file_name}...')
+        with tempfile.NamedTemporaryFile(suffix='.xml', delete=True) as tmp:
+            tmp.write(r.content)
+            tmp.flush()
+            return tmp.name, r.content  # caller must use tmp.name before this returns
+    except Exception as e:
+        print(f'ERROR: {file_name} cannot be downloaded. {e}')
+        return None, None
 
-        return file_path
+#%% Function to save an agenda as excel (Excel serves as the persistent cache)
+def import_excel(year, season='fall', midnight=0):
+    season_no = '04' if season == 'spring' else '10'
+    excel_path = os.path.join(directory, 'raw_data', f'Unified Agenda {year}{season_no}.xlsx')
 
-    except:
-        print(f'ERROR: {file_name} cannot be downloaded.')
-
-#%% Function to save an agenda as excel
-def import_excel(year,season='fall',midnight=0):
-    season_no='04' if season=='spring' else '10'
-    excel_path=f'{directory}/raw_data/Unified Agenda {year}{season_no}.xlsx'
     if not os.path.exists(excel_path):
-        file_path=download_file(year,season_no)
-        print('Converting XML to Dataframe...')
-        df = import_xml(file_path,year,midnight)
+        # Build download URL (same logic as the old download_file helper)
+        if year == 2012:
+            file_url = f'https://www.reginfo.gov/public/do/XMLViewFileAction?f=REGINFO_RIN_DATA_{year}.xml'
+        else:
+            file_url = f'https://www.reginfo.gov/public/do/XMLViewFileAction?f=REGINFO_RIN_DATA_{year}{season_no}.xml'
+
+        print(f'Downloading XML for {season} {year}...')
+        r = requests.get(file_url, allow_redirects=True)
+        r.raise_for_status()
+        with tempfile.NamedTemporaryFile(suffix='.xml', delete=True) as tmp:
+            tmp.write(r.content)
+            tmp.flush()
+            print('Converting XML to Dataframe...')
+            df = import_xml(tmp.name, year, midnight)
+
         fr_cols = [col for col in df if col.startswith('action')]
-        la_cols=[col for col in df if col.startswith('legal_deadline')]
+        la_cols = [col for col in df if col.startswith('legal_deadline')]
         desired_cols = ['publication_date', 'RIN', 'rule_title', 'agency_code', 'agency_name', 'department_code',
                         'department_name', 'abstract', 'priority', 'major', 'RIN_status', 'rule_stage', 'CFR']
         available_cols = [col for col in desired_cols if col in df.columns] + la_cols + fr_cols
         df = df[available_cols]
         df.to_excel(excel_path, index=False)
-        # print(f'Unified Agenda {year}{season_no}.xlsx has been saved.')
     else:
-        df=pd.read_excel(excel_path)
+        df = pd.read_excel(excel_path)
 
     return df
 

@@ -1,5 +1,7 @@
 import warnings
 warnings.filterwarnings('ignore') # Ignore warnings
+import datetime as _dt
+import tempfile
 import pandas as pd
 import os
 from lxml import etree
@@ -26,9 +28,16 @@ import unified_agenda_data.unified_agenda_data_analysis as ua_analysis
 from unified_agenda_data.helper import collect_ua_data, xml_to_csv, download_file, reorder_columns, get_latest_year_season
 import matplotlib.pyplot as plt
 
-# Directory to store downloaded XML and generated CSV files for Unified Agenda
-BASE_DIR = os.path.dirname(__file__)
-UA_OUTPUT_DIR = os.path.join(BASE_DIR, "ua_downloads")
+# ── Directory constants ────────────────────────────────────────────────────────
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Storage for final user-requested CSV outputs (tab1).
+# XML files are never stored here — they use tempfile and auto-delete after parsing.
+_ua_default = os.path.join(BASE_DIR, "ua_downloads")
+UA_OUTPUT_DIR = os.environ.get(
+    'UA_OUTPUT_DIR',
+    _ua_default if os.access(BASE_DIR, os.W_OK) else '/tmp/ua_downloads'
+)
 os.makedirs(UA_OUTPUT_DIR, exist_ok=True)
 
 # 3 things to work on -
@@ -48,7 +57,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-st.image("images/logo.png",use_container_width=True)
+st.image(os.path.join(BASE_DIR, 'images', 'logo.png'), use_container_width=True)
 
 
 
@@ -65,9 +74,15 @@ def safe_find_text(node, tag, index=None):
     return ""
 
 
-current_year, current_season = get_latest_year_season()
-# Unified Agenda uses Spring (roughly Jan–Jun) and Fall (Jul–Dec)
-current_season = "fall" if current_time.month >= 7 else "spring"
+# current_time is always defined here regardless of whether the oira star-import succeeded
+current_time = _dt.datetime.now()
+try:
+    current_year, current_season = get_latest_year_season()
+    # Override with local clock so month comparisons are consistent
+    current_season = "fall" if current_time.month >= 7 else "spring"
+except Exception:
+    current_year = current_time.year
+    current_season = "fall" if current_time.month >= 7 else "spring"
 
 
 
@@ -123,7 +138,7 @@ with tab1:
 
     if st.button("More Information"):
         st.write("More Information about the dataset")
-        st.image("images/data.png")
+        st.image(os.path.join(BASE_DIR, 'images', 'data.png'))
 
     if st.button("Display Data"):
         st.info("Collecting data, please wait...")
@@ -166,39 +181,18 @@ with tab2:
         unsafe_allow_html=True
     )
 
-    current_year = datetime.now().year
+    _tab2_current_year = _dt.datetime.now().year
     agy_url = 'https://raw.githubusercontent.com/zhoudanxie/regulatory_data_repository/main/other_data/AGY_AGENCY_LIST.xml'
-    agy_path = 'AGY_AGENCY_LIST.xml'
-
 
     @st.cache_data
     def download_agency_list():
         r = requests.get(agy_url)
-        with open(agy_path, 'wb') as f:
-            f.write(r.content)
-        df = pdx.read_xml(open(agy_path).read(), ['OIRA_DATA']).pipe(pdx.flatten).pipe(pdx.flatten)
+        r.raise_for_status()
+        df = pdx.read_xml(r.content.decode('utf-8'), ['OIRA_DATA']).pipe(pdx.flatten).pipe(pdx.flatten)
         return pd.DataFrame({
             'agency_code': df['AGENCY|AGENCY_CODE'].astype(int),
             'agency_name': df['AGENCY|NAME']
         })
-
-
-    def download_xml(year):
-        filename = f'EO_RULE_COMPLETED_{year}.xml'
-        url = f'https://www.reginfo.gov/public/do/XMLViewFileAction?f=EO_RULE_COMPLETED_{year}.xml' \
-            if year != current_year else \
-            'https://www.reginfo.gov/public/do/XMLViewFileAction?f=EO_RULE_COMPLETED_YTD.xml'
-
-        if not os.path.exists(filename):
-            r = requests.get(url)
-            content = r.content.decode('utf-8')
-            if 'DATE_RECEIVED' in content:
-                with open(filename, 'wb') as f:
-                    f.write(r.content)
-                return filename
-            else:
-                return None
-        return filename
 
 
     def oira_transformation(filepath, agy_info):
@@ -234,21 +228,41 @@ with tab2:
         return df
 
 
-    def process_oira_data(years):
+    @st.cache_data(ttl=3600)
+    def fetch_oira_year(year):
+        """Download, parse, and return OIRA data for one year.
+        Result is cached for 1 hour; no XML file is written to disk."""
         agy_info = download_agency_list()
+        url = (
+            'https://www.reginfo.gov/public/do/XMLViewFileAction?f=EO_RULE_COMPLETED_YTD.xml'
+            if year == _tab2_current_year
+            else f'https://www.reginfo.gov/public/do/XMLViewFileAction?f=EO_RULE_COMPLETED_{year}.xml'
+        )
+        r = requests.get(url)
+        r.raise_for_status()
+        if 'DATE_RECEIVED' not in r.content.decode('utf-8'):
+            return pd.DataFrame()
+        with tempfile.NamedTemporaryFile(suffix='.xml', delete=True) as tmp:
+            tmp.write(r.content)
+            tmp.flush()
+            return oira_transformation(tmp.name, agy_info)
+
+    def process_oira_data(years):
         results = []
         for year in years:
-            xml_file = download_xml(year)
-            if xml_file:
-                df = oira_transformation(xml_file, agy_info)
-                results.append(df)
+            try:
+                df = fetch_oira_year(year)
+                if not df.empty:
+                    results.append(df)
+            except Exception:
+                continue
         if results:
             return pd.concat(results, ignore_index=True)
         return pd.DataFrame()
 
     mode = st.radio("Select Mode:", ["Single Year", "Multiple Years"])
     if mode == "Single Year":
-        year = st.number_input("Enter Year", min_value=1981, max_value=current_year, step=1, value=current_year)
+        year = st.number_input("Enter Year", min_value=1981, max_value=_tab2_current_year, step=1, value=_tab2_current_year)
         if st.button("Download and Transform"):
             df = process_oira_data([year])
             if not df.empty:
@@ -311,8 +325,8 @@ with tab2:
             else:
                 st.error("Failed to fetch data.")
     else:
-        start_year, end_year = st.slider("Select Year Range", min_value=1981, max_value=current_year,
-                                         value=(2015, current_year))
+        start_year, end_year = st.slider("Select Year Range", min_value=1981, max_value=_tab2_current_year,
+                                         value=(2015, _tab2_current_year))
         if st.button("Display data"):
             df = process_oira_data(list(range(start_year, end_year + 1)))
             if not df.empty:
@@ -402,7 +416,7 @@ with tab3:
     if st.button("Run Analysis", key="tab3_run"):
         with st.spinner("Loading agenda data and building plots…"):
             try:
-                summary, figures, df = ua_analysis.run_analysis_for_dashboard(year, season, current_year=current_year)
+                summary, figures, df = ua_analysis.run_analysis_for_dashboard(year, season, current_year=MAX_YEAR)
                 st.success(f"Loaded **{summary['total_actions']}** actions for {season.capitalize()} {year}.")
 
                 st.subheader("Summary")
