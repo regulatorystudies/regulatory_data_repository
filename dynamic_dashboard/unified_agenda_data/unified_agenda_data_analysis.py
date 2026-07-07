@@ -607,14 +607,14 @@ def run_analysis_for_dashboard(agenda_year, agenda_season, current_year=None):
             ax2.tick_params(axis='x', which='major', labelsize=14, color='#d3d3d3')
             ax2.set_title(
                 f"Active Economically Significant Actions in the {agenda_season.capitalize()} {agenda_year}\n"
-                f"Unified Agenda for Select Agencies (Midnight vs Non‑Midnight)",
+                f"Unified Agenda for Select Agencies (End-of-Term vs. Later Action)",
                 fontsize=18,
             )
             ax2.spines['top'].set_visible(False)
             ax2.spines['right'].set_visible(False)
             ax2.spines['left'].set_color('#d3d3d3')
             ax2.spines['bottom'].set_color('#d3d3d3')
-            figures.append((fig2, "Midnight vs Non‑Midnight ES Actions by Agency"))
+            figures.append((fig2, "End-of-Term vs. Later ES Actions by Agency"))
 
         # ----- Compare with previous agendas under same administration -----
         if agenda_number != 1:

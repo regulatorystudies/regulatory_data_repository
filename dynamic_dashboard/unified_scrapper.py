@@ -275,9 +275,6 @@ with tab2:
 
                 agency_counts = df['agency_name'].value_counts().sort_values(ascending=False)
                 top15 = agency_counts.iloc[:15]
-                others_sum = agency_counts.iloc[15:].sum()
-                if others_sum > 0:
-                    top15 = pd.concat([top15, pd.Series({'Others': others_sum})])
                 fig_bar, ax_bar = plt.subplots(figsize=(14, 6))
                 colors_bar = plt.cm.tab20.colors[:len(top15)]
                 bars = ax_bar.bar(top15.index, top15.values, color=colors_bar)
@@ -340,9 +337,6 @@ with tab2:
 
                 agency_counts = df['agency_name'].value_counts().sort_values(ascending=False)
                 top15 = agency_counts.iloc[:15]
-                others_sum = agency_counts.iloc[15:].sum()
-                if others_sum > 0:
-                    top15 = pd.concat([top15, pd.Series({'Others': others_sum})])
                 fig_bar, ax_bar = plt.subplots(figsize=(14, 6))
                 colors_bar = plt.cm.tab20.colors[:len(top15)]
                 bars = ax_bar.bar(top15.index, top15.values, color=colors_bar)
@@ -397,8 +391,8 @@ with tab3:
     )
     st.write(f"Select a Unified Agenda (year and season) to run the same analysis and plots.")
 
-    # Hard cap: latest available data is Spring 2025
-    MAX_YEAR = 2025
+    # Hard cap: latest available data is Spring 2026
+    MAX_YEAR = 2026
     MAX_SEASON = "spring"
 
     year = st.number_input("Enter Year here", min_value=1995, max_value=MAX_YEAR, step=1, value=MAX_YEAR)
@@ -406,7 +400,7 @@ with tab3:
     if year in [1995, 2012]:
         season_opts = ["fall"]
     elif year == MAX_YEAR:
-        season_opts = ["spring"]  # only spring for 2025
+        season_opts = ["spring"]  # only spring for 2026
     else:
         season_opts = ["spring", "fall"]
 
@@ -428,7 +422,7 @@ with tab3:
                     st.write("**By priority**")
                     st.dataframe(summary['priority_counts'].reset_index(name="Count"), use_container_width=True, hide_index=True)
                 if summary.get('midnight_agenda'):
-                    st.caption("This is a midnight agenda (fall of last year of an administration).")
+                    st.caption("This is an end-of-term agenda (fall of the last year of an administration).")
 
                 if df is not None and not df.empty:
                     with st.expander("View Raw Data (click to expand)"):
