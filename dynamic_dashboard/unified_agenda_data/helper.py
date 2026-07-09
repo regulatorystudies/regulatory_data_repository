@@ -6,10 +6,27 @@ from typing import Optional
 
 import pandas as pd
 import requests
+import streamlit as st
 from bs4 import BeautifulSoup
 from lxml import etree
 
 warnings.filterwarnings("ignore")
+
+# Disk cache for parsed Unified Agenda data, keyed by year/season. Closed
+# (immutable) agendas are cached here indefinitely so repeat requests -- and
+# requests made after an app restart/redeploy -- skip the network fetch and
+# XML parse entirely. The currently in-progress agenda is never written here
+# since reginfo.gov keeps updating it until the season closes.
+# UA_CACHE_DIR can be overridden via env var; falls back to a temp dir if the
+# app directory isn't writable (e.g. read-only deployment filesystems).
+_THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+_dashboard_dir = os.path.dirname(_THIS_DIR)
+_ua_cache_default = os.path.join(_dashboard_dir, "ua_cache")
+UA_CACHE_DIR = os.environ.get(
+    "UA_CACHE_DIR",
+    _ua_cache_default if os.access(_dashboard_dir, os.W_OK) else os.path.join(tempfile.gettempdir(), "ua_cache"),
+)
+os.makedirs(UA_CACHE_DIR, exist_ok=True)
 
 def replace_noun(text):
     if text is None:
@@ -279,10 +296,62 @@ def season_transform(season: str) -> str:
         return sea_no_option[0]
     raise ValueError('Invalid season: use "spring" or "fall".')
 
+def _cache_file_path(year, season) -> str:
+    if year == 2012:
+        name = f"REGINFO_RIN_DATA_{year}.csv"
+    else:
+        name = f"REGINFO_RIN_DATA_{year}{season_transform(season)}.csv"
+    return os.path.join(UA_CACHE_DIR, name)
+
+
+def _resolve_actual_period(year, season):
+    """2026 has no Unified Agenda published yet. A "fall" request for it is
+    quietly served from the latest published agenda (Fall 2025) instead --
+    callers keep labeling output using the year/season the user picked.
+    "Spring" isn't offered in the UI for 2026, but multi-year range requests
+    can still reach it internally; there's no equivalent to serve, so it
+    yields no data (year=None signals "nothing to fetch" to download_file)."""
+    if year == 2026:
+        return (2025, "fall") if season == "fall" else (None, None)
+    return year, season
+
+
+def _is_live_period(year, season) -> bool:
+    """True if (year, season) is the currently in-progress agenda, which
+    reginfo.gov may still revise. If we can't confirm it's closed, treat it
+    as live so we never persist a possibly-incomplete file to disk."""
+    try:
+        latest_year, latest_season = get_latest_year_season()
+    except Exception:
+        return True
+    return year == latest_year and season == latest_season
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
 def download_file(
-    year, season, directory, status_callback) -> Optional[pd.DataFrame]:
-    """Download a Unified Agenda XML, parse it in a tempfile, and return the
-    resulting DataFrame.  The raw XML is never written to a persistent path."""
+    year, season, directory, _status_callback: Optional[callable] = None
+) -> Optional[pd.DataFrame]:
+    """Download a Unified Agenda XML, parse it, and return the resulting
+    DataFrame. Closed year/seasons are read from / saved to UA_CACHE_DIR on
+    disk, so repeat requests (including after an app restart) skip the
+    network fetch and XML parse. The in-progress agenda is never cached to
+    disk. `@st.cache_data` additionally keeps results in memory for the
+    current process, so repeat requests within an hour are instant."""
+    year, season = _resolve_actual_period(year, season)
+    if year is None:
+        return None
+    live = _is_live_period(year, season)
+    cache_path = _cache_file_path(year, season)
+
+    if not live and os.path.exists(cache_path):
+        try:
+            df = pd.read_csv(cache_path)
+            if _status_callback:
+                _status_callback(f"{os.path.basename(cache_path)} loaded from cache.")
+            return df
+        except Exception:
+            pass  # cached file unreadable -- fall through and re-fetch
+
     if year == 2012:
         file_name = f"REGINFO_RIN_DATA_{year}.xml"
         file_url = f"https://www.reginfo.gov/public/do/XMLViewFileAction?f=REGINFO_RIN_DATA_{year}.xml"
@@ -298,13 +367,18 @@ def download_file(
             tmp.write(r.content)
             tmp.flush()
             df = xml_to_csv(tmp.name)
-        if status_callback:
-            status_callback(f"{file_name} downloaded and parsed.")
+        if not live:
+            try:
+                df.to_csv(cache_path, index=False)
+            except Exception:
+                pass  # cache write failures (e.g. read-only fs) shouldn't break the app
+        if _status_callback:
+            _status_callback(f"{file_name} downloaded and parsed.")
         return df
     except Exception as e:
         err_msg = f"ERROR: {file_name} cannot be downloaded or parsed. {e}"
-        if status_callback:
-            status_callback(err_msg)
+        if _status_callback:
+            _status_callback(err_msg)
         return None
 
 
@@ -314,6 +388,7 @@ def reorder_columns(df):
     return df[other_col + action_col]
 
 
+@st.cache_data(ttl=3600)
 def get_latest_year_season():
     page = requests.get("https://www.reginfo.gov/public/do/eAgendaXmlReport")
     page.raise_for_status()
@@ -403,6 +478,9 @@ def collect_ua_data(
         return None
 
     df = pd.concat(result_dfs, ignore_index=True)
+    # A range spanning 2025-2026 can pull Fall 2025 twice (once as the tail
+    # end of 2025, once as 2026's stand-in) -- collapse exact-duplicate rows.
+    df = df.drop_duplicates()
     df = reorder_columns(df)
     out_name = f"REGINFO_RIN_DATA_{start_year}{start_season}-{end_year}{end_season}.csv"
     df.to_csv(os.path.join(directory, out_name), index=False)
