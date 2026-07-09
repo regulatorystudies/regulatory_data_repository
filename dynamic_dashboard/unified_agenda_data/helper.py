@@ -304,6 +304,18 @@ def _cache_file_path(year, season) -> str:
     return os.path.join(UA_CACHE_DIR, name)
 
 
+def _resolve_actual_period(year, season):
+    """2026 has no Unified Agenda published yet. A "fall" request for it is
+    quietly served from the latest published agenda (Fall 2025) instead --
+    callers keep labeling output using the year/season the user picked.
+    "Spring" isn't offered in the UI for 2026, but multi-year range requests
+    can still reach it internally; there's no equivalent to serve, so it
+    yields no data (year=None signals "nothing to fetch" to download_file)."""
+    if year == 2026:
+        return (2025, "fall") if season == "fall" else (None, None)
+    return year, season
+
+
 def _is_live_period(year, season) -> bool:
     """True if (year, season) is the currently in-progress agenda, which
     reginfo.gov may still revise. If we can't confirm it's closed, treat it
@@ -325,6 +337,9 @@ def download_file(
     network fetch and XML parse. The in-progress agenda is never cached to
     disk. `@st.cache_data` additionally keeps results in memory for the
     current process, so repeat requests within an hour are instant."""
+    year, season = _resolve_actual_period(year, season)
+    if year is None:
+        return None
     live = _is_live_period(year, season)
     cache_path = _cache_file_path(year, season)
 
@@ -463,6 +478,9 @@ def collect_ua_data(
         return None
 
     df = pd.concat(result_dfs, ignore_index=True)
+    # A range spanning 2025-2026 can pull Fall 2025 twice (once as the tail
+    # end of 2025, once as 2026's stand-in) -- collapse exact-duplicate rows.
+    df = df.drop_duplicates()
     df = reorder_columns(df)
     out_name = f"REGINFO_RIN_DATA_{start_year}{start_season}-{end_year}{end_season}.csv"
     df.to_csv(os.path.join(directory, out_name), index=False)

@@ -410,10 +410,19 @@ def _admin_agendas_up_to(admin: str, year: int, season: str):
     return items
 
 
-def run_analysis_for_dashboard(agenda_year, agenda_season, current_year=None):
+def run_analysis_for_dashboard(agenda_year, agenda_season, current_year=None, treat_as_next_agenda=False):
     """
     Run the unified agenda analysis for a given year/season and return
     (summary dict, list of (matplotlib_figure, title), raw DataFrame).
+
+    treat_as_next_agenda: when True, the cross-administration comparison
+    plots (ES/significant actions "Nth agenda") compare against the NEXT
+    agenda slot instead of the one agenda_year/agenda_season actually falls
+    on -- e.g. Fall 2025 (the 2nd agenda) gets compared as if it were the
+    3rd. The 3rd slot has the opposite season parity, so the comparison
+    lookups use the opposite season too. Everything else (which data is
+    actually loaded/plotted for the current administration, the midnight
+    check, and the same-administration history plot) is unaffected.
     """
     import traceback as _tb
 
@@ -675,53 +684,62 @@ def run_analysis_for_dashboard(agenda_year, agenda_season, current_year=None):
 
         # ----- Compare nth agenda across administrations (ES stage stacked bar) -----
         _step = "plot 4 — ES comparison across administrations"
-        n_val = agenda_number
+        if treat_as_next_agenda:
+            n_val = agenda_number + 1
+            comparison_season = 'spring' if agenda_season == 'fall' else 'fall'
+        else:
+            n_val = agenda_number
+            comparison_season = agenda_season
 
+        _col_label_es = f'{agenda_admin}\n({agenda_season.capitalize()} {agenda_year})'
         df_es_stage = df[
             (df['priority'] == 'Economically Significant') |
             (df['priority'] == 'Section 3(f)(1) Significant')
-        ]['stage'].value_counts(dropna=False).reset_index(
-            name=f'{agenda_admin}\n({agenda_season.capitalize()} {agenda_year})'
-        )
+        ]['stage'].value_counts(dropna=False).reset_index(name=_col_label_es)
 
         df_compare_es = df_es_stage.set_index('stage')
+        _es_admin_cols = {agenda_admin: _col_label_es}
 
         # Only include administrations that actually have agenda #n_val
         for admin in [a for a in reversed(list(ADMIN_TERMS.keys())) if a != agenda_admin]:
             if _admin_total_agendas(admin) < n_val:
                 continue
             try:
-                year_add_admin = _agenda_year_for_admin_n(admin, n_val, agenda_season)
+                year_add_admin = _agenda_year_for_admin_n(admin, n_val, comparison_season)
             except Exception:
                 continue
             if not (1995 <= year_add_admin <= current_year):
                 continue
             try:
-                df_admin = import_excel(year_add_admin, agenda_season)
+                df_admin = import_excel(year_add_admin, comparison_season)
                 df_admin = convert_stage(df_admin)
                 # Guard: ensure priority exists before filtering
                 if 'priority' not in df_admin.columns:
                     df_admin['priority'] = 'Unknown'
+                _col_label_admin = f'{admin}\n({comparison_season.capitalize()} {year_add_admin})'
                 df_admin_es = df_admin[
                     (df_admin['priority'] == 'Economically Significant') |
                     (df_admin['priority'] == 'Section 3(f)(1) Significant')
-                ]['stage'].value_counts(dropna=False).reset_index(
-                    name=f'{admin}\n({agenda_season.capitalize()} {year_add_admin})'
-                )
+                ]['stage'].value_counts(dropna=False).reset_index(name=_col_label_admin)
                 df_compare_es = df_compare_es.merge(
                     df_admin_es.set_index('stage'),
                     left_index=True,
                     right_index=True,
                     how='outer',
                 )
+                _es_admin_cols[admin] = _col_label_admin
             except Exception as _e:
-                print(f"Warning: skipping {admin} ({agenda_season} {year_add_admin}) in ES comparison: {_e}")
+                print(f"Warning: skipping {admin} ({comparison_season} {year_add_admin}) in ES comparison: {_e}")
                 continue
 
         n_word = _ordinal(n_val) if isinstance(n_val, int) else str(n_val)
 
-        # Enforce bottom-to-top stacking order: Active → Long-Term → Completed
-        _stage_order = ['Active Actions', 'Long-Term Actions', 'Completed Actions']
+        # Order administrations chronologically (oldest to newest), left to right
+        _chrono_cols_es = [_es_admin_cols[a] for a in ADMIN_TERMS.keys() if a in _es_admin_cols]
+        df_compare_es = df_compare_es[_chrono_cols_es]
+
+        # Enforce bottom-to-top stacking order: Active → Completed → Long-Term
+        _stage_order = ['Active Actions', 'Completed Actions', 'Long-Term Actions']
         df_compare_es = df_compare_es.reindex([s for s in _stage_order if s in df_compare_es.index])
         # Drop any administration column where every stage value is 0 or NaN (empty bar)
         df_compare_es = df_compare_es.loc[:, df_compare_es.fillna(0).sum(axis=0) > 0]
@@ -754,40 +772,44 @@ def run_analysis_for_dashboard(agenda_year, agenda_season, current_year=None):
         _step = "plot 5 — significant actions comparison across administrations"
         df_sig = sig_filter(df)
         df_sig_active = df_sig[df_sig['stage'] == 'Active Actions']
-        df_sig_stage = df_sig_active['priority'].value_counts(dropna=False).reset_index(
-            name=f'{agenda_admin}\n({agenda_season.capitalize()} {agenda_year})'
-        )
+        _col_label_sig = f'{agenda_admin}\n({agenda_season.capitalize()} {agenda_year})'
+        df_sig_stage = df_sig_active['priority'].value_counts(dropna=False).reset_index(name=_col_label_sig)
         df_compare_sig = df_sig_stage.set_index('priority')
+        _sig_admin_cols = {agenda_admin: _col_label_sig}
 
         for admin in [a for a in reversed(list(ADMIN_TERMS.keys())) if a != agenda_admin]:
             if _admin_total_agendas(admin) < n_val:
                 continue
             try:
-                year_add_admin = _agenda_year_for_admin_n(admin, n_val, agenda_season)
+                year_add_admin = _agenda_year_for_admin_n(admin, n_val, comparison_season)
             except Exception:
                 continue
             if not (1995 <= year_add_admin <= current_year):
                 continue
             try:
-                df_admin = import_excel(year_add_admin, agenda_season)
+                df_admin = import_excel(year_add_admin, comparison_season)
                 df_admin = convert_stage(df_admin)
                 # Guard: ensure priority exists before sig_filter
                 if 'priority' not in df_admin.columns:
                     df_admin['priority'] = 'Unknown'
                 df_admin_sig = sig_filter(df_admin)
                 df_admin_sig_active = df_admin_sig[df_admin_sig['stage'] == 'Active Actions']
-                df_admin_sig_stage = df_admin_sig_active['priority'].value_counts(dropna=False).reset_index(
-                    name=f'{admin}\n({agenda_season.capitalize()} {year_add_admin})'
-                )
+                _col_label_admin_sig = f'{admin}\n({comparison_season.capitalize()} {year_add_admin})'
+                df_admin_sig_stage = df_admin_sig_active['priority'].value_counts(dropna=False).reset_index(name=_col_label_admin_sig)
                 df_compare_sig = df_compare_sig.merge(
                     df_admin_sig_stage.set_index('priority'),
                     left_index=True,
                     right_index=True,
                     how='outer',
                 )
+                _sig_admin_cols[admin] = _col_label_admin_sig
             except Exception as _e:
-                print(f"Warning: skipping {admin} ({agenda_season} {year_add_admin}) in sig comparison: {_e}")
+                print(f"Warning: skipping {admin} ({comparison_season} {year_add_admin}) in sig comparison: {_e}")
                 continue
+
+        # Order administrations chronologically (oldest to newest), left to right
+        _chrono_cols_sig = [_sig_admin_cols[a] for a in ADMIN_TERMS.keys() if a in _sig_admin_cols]
+        df_compare_sig = df_compare_sig[_chrono_cols_sig]
 
         priority_order = ['Other Significant', 'Economically Significant']
         df_compare_sig = df_compare_sig.reindex(priority_order).fillna(0)
