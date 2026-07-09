@@ -25,7 +25,7 @@ _ua_analysis_dir = os.path.join(_repo_root, 'unified_agenda_data')
 if _ua_analysis_dir not in sys.path:
     sys.path.insert(0, _ua_analysis_dir)
 import unified_agenda_data.unified_agenda_data_analysis as ua_analysis
-from unified_agenda_data.helper import collect_ua_data, xml_to_csv, download_file, reorder_columns, get_latest_year_season
+from unified_agenda_data.helper import collect_ua_data, xml_to_csv, download_file, reorder_columns
 import matplotlib.pyplot as plt
 
 # ── Directory constants ────────────────────────────────────────────────────────
@@ -74,15 +74,11 @@ def safe_find_text(node, tag, index=None):
     return ""
 
 
-# current_time is always defined here regardless of whether the oira star-import succeeded
-current_time = _dt.datetime.now()
-try:
-    current_year, current_season = get_latest_year_season()
-    # Override with local clock so month comparisons are consistent
-    current_season = "fall" if current_time.month >= 7 else "spring"
-except Exception:
-    current_year = current_time.year
-    current_season = "fall" if current_time.month >= 7 else "spring"
+# Hard cap: latest published Unified Agenda is Spring 2025. The year
+# dropdowns go one year further (2026) so users can see that nothing has
+# been published for it yet, rather than the year simply being absent.
+current_year = 2025
+current_season = "spring"
 
 
 
@@ -98,20 +94,28 @@ with tab1:
         f'To request data, please enter the year and season range between Fall 1995 and {current_season.title()} {current_year}.')
     col1, col2 = st.columns(2)
     def season_options(year):
-        if year in [1995,2012]:
+        if year in [1995, 2012]:
             return ["fall"]
-        if year == current_year: return ["spring"]
-        return ["spring","fall"]
+        if year == current_year:
+            return [current_season]
+        if year > current_year:
+            # Nothing published yet for this year -- served from the latest
+            # published agenda instead (see _resolve_actual_period), under
+            # this year's own label.
+            return ["fall"]
+        return ["spring", "fall"]
     with col1:
-        start_year = st.selectbox("Start Year", list(range(1995,current_year+1)),index=0)
-        start_season = st.selectbox("Start Season",
-                                    season_options(start_year),
-                                    key="start_season")
+        start_year = st.selectbox("Start Year", list(range(1995, current_year + 2)), index=0)
+        if start_year > current_year:
+            start_season = "fall"
+        else:
+            start_season = st.selectbox("Start Season", season_options(start_year), key="start_season")
     with col2:
-        end_year = st.selectbox("End Year", list(range(1995, current_year+1)), index=0)
-        end_season = st.selectbox("End Season",
-                                  season_options(end_year),
-                                  key="end_season")
+        end_year = st.selectbox("End Year", list(range(1995, current_year + 2)), index=0)
+        if end_year > current_year:
+            end_season = "fall"
+        else:
+            end_season = st.selectbox("End Season", season_options(end_year), key="end_season")
 
     # Agency filter (optional) — cached so it only fetches once
     @st.cache_data
@@ -275,9 +279,6 @@ with tab2:
 
                 agency_counts = df['agency_name'].value_counts().sort_values(ascending=False)
                 top15 = agency_counts.iloc[:15]
-                others_sum = agency_counts.iloc[15:].sum()
-                if others_sum > 0:
-                    top15 = pd.concat([top15, pd.Series({'Others': others_sum})])
                 fig_bar, ax_bar = plt.subplots(figsize=(14, 6))
                 colors_bar = plt.cm.tab20.colors[:len(top15)]
                 bars = ax_bar.bar(top15.index, top15.values, color=colors_bar)
@@ -340,9 +341,6 @@ with tab2:
 
                 agency_counts = df['agency_name'].value_counts().sort_values(ascending=False)
                 top15 = agency_counts.iloc[:15]
-                others_sum = agency_counts.iloc[15:].sum()
-                if others_sum > 0:
-                    top15 = pd.concat([top15, pd.Series({'Others': others_sum})])
                 fig_bar, ax_bar = plt.subplots(figsize=(14, 6))
                 colors_bar = plt.cm.tab20.colors[:len(top15)]
                 bars = ax_bar.bar(top15.index, top15.values, color=colors_bar)
@@ -397,27 +395,38 @@ with tab3:
     )
     st.write(f"Select a Unified Agenda (year and season) to run the same analysis and plots.")
 
-    # Hard cap: latest available data is Spring 2025
+    # Hard cap: latest published Unified Agenda is Spring 2025. The year
+    # input allows one year further (2026) so users can see that nothing has
+    # been published for it yet, rather than the year simply being absent.
     MAX_YEAR = 2025
     MAX_SEASON = "spring"
 
-    year = st.number_input("Enter Year here", min_value=1995, max_value=MAX_YEAR, step=1, value=MAX_YEAR)
+    year = st.number_input("Enter Year here", min_value=1995, max_value=MAX_YEAR + 1, step=1, value=MAX_YEAR)
 
-    if year in [1995, 2012]:
-        season_opts = ["fall"]
-    elif year == MAX_YEAR:
-        season_opts = ["spring"]  # only spring for 2025
+    if year > MAX_YEAR:
+        # Nothing published yet for this year -- served from the latest
+        # published agenda instead (see _resolve_actual_period), under this
+        # year's own label. No season choice to make, so no widget shown.
+        season = "fall"
     else:
-        season_opts = ["spring", "fall"]
-
-    season = st.selectbox("Please enter the season", season_opts)
+        if year in [1995, 2012]:
+            season_opts = ["fall"]
+        elif year == MAX_YEAR:
+            season_opts = [MAX_SEASON]  # only spring for 2025
+        else:
+            season_opts = ["spring", "fall"]
+        season = st.selectbox("Please enter the season", season_opts)
 
 
     if st.button("Run Analysis", key="tab3_run"):
         with st.spinner("Loading agenda data and building plots…"):
             try:
-                summary, figures, df = ua_analysis.run_analysis_for_dashboard(year, season, current_year=MAX_YEAR)
-                st.success(f"Loaded **{summary['total_actions']}** actions for {season.capitalize()} {year}.")
+                analysis_year, analysis_season = (2025, "fall") if year == 2026 else (year, season)
+                summary, figures, df = ua_analysis.run_analysis_for_dashboard(
+                    analysis_year, analysis_season, current_year=MAX_YEAR,
+                    treat_as_next_agenda=(year == 2026),
+                )
+                st.success(f"Loaded **{summary['total_actions']}** actions.")
 
                 st.subheader("Summary")
                 col1, col2 = st.columns(2)
@@ -428,7 +437,7 @@ with tab3:
                     st.write("**By priority**")
                     st.dataframe(summary['priority_counts'].reset_index(name="Count"), use_container_width=True, hide_index=True)
                 if summary.get('midnight_agenda'):
-                    st.caption("This is a midnight agenda (fall of last year of an administration).")
+                    st.caption("This is an end-of-term agenda (fall of the last year of an administration).")
 
                 if df is not None and not df.empty:
                     with st.expander("View Raw Data (click to expand)"):
