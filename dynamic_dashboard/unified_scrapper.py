@@ -53,6 +53,9 @@ st.markdown(
     .stApp{
         background-color: #033C5A;
     }
+    header[data-testid="stHeader"]{
+        display: none;
+    }
     </style>
     """,
     unsafe_allow_html=True

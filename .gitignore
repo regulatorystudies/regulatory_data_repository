@@ -190,3 +190,7 @@ cython_debug/
 # Temp files
 unified_agenda_data/raw_data/
 unified_agenda_data/output/
+dynamic_dashboard/ua_cache/
+dynamic_dashboard/ua_downloads/
+dynamic_dashboard/unified_agenda_data/raw_data/
+dynamic_dashboard/unified_agenda_data/output/

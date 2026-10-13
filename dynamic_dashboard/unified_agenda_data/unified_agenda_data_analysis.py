@@ -655,8 +655,8 @@ def run_analysis_for_dashboard(agenda_year, agenda_season, current_year=None, tr
                 ).reset_index(name=f'{s.capitalize()} {y}')
                 df_compare = df_compare.merge(df_stage, on='stage', how='outer')
             df_compare = df_compare.set_index('stage')
-            # Enforce bottom-to-top stacking order: Active → Long-Term → Completed
-            _stage_order = ['Active Actions', 'Long-Term Actions', 'Completed Actions']
+            # Enforce bottom-to-top stacking order: Active → Completed → Long-Term
+            _stage_order = ['Active Actions', 'Completed Actions', 'Long-Term Actions']
             df_compare = df_compare.reindex([s for s in _stage_order if s in df_compare.index])
 
             fig3, ax3 = plt.subplots(figsize=(12, 7))
