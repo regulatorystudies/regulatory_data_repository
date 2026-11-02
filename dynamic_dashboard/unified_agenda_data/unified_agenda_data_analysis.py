@@ -855,10 +855,14 @@ def _cli_main():
     # Preserve original command-line behaviour, but behind a main guard
     page = requests.get("https://www.reginfo.gov/public/do/eAgendaXmlReport")
     soup = BeautifulSoup(page.content, 'html.parser')
-    newest_file_info = soup.select('li')[0].text[1:-6]
-    current_year_season = re.split(r"\s", newest_file_info, 1)
-    curr_year = int(current_year_season[1])
-    curr_season = current_year_season[0].lower()
+    # Use the newest file's name, not its label ("2026 Data" has no season; its file is 202510)
+    files = [re.search(r'REGINFO_RIN_DATA_(\d{4})(04|10)\.xml', a.get('href', ''))
+             for a in soup.select('a') if 'XMLViewFileAction' in a.get('href', '')]
+    files = [m for m in files if m]
+    if not files:
+        raise RuntimeError('Could not find any Unified Agenda XML files on reginfo.gov')
+    curr_year = max(int(m.group(1)) for m in files)
+    curr_season = 'fall' if any(int(m.group(1)) == curr_year and m.group(2) == '10' for m in files) else 'spring'
 
     print(
         f'The Unified Agenda data are available from Fall 1995 through '

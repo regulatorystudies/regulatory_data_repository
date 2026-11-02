@@ -308,6 +308,9 @@ def download_file(
         if not os.path.exists(file_path):
             r = requests.get(file_url, allow_redirects=True)
             r.raise_for_status()
+            # reginfo.gov answers a request for a file that doesn't exist with an HTML page (status 200)
+            if "xml" not in r.headers.get("content-type", ""):
+                raise ValueError("not available on reginfo.gov")
             with open(file_path, "wb") as f:
                 f.write(r.content)
         if status_callback:
@@ -331,10 +334,15 @@ def get_latest_year_season():
     page = requests.get("https://www.reginfo.gov/public/do/eAgendaXmlReport")
     page.raise_for_status()
     soup = BeautifulSoup(page.content, "html.parser")
-    newest_file_info = soup.select("li")[0].text[1:-6]
-    current_year_season = re.split(r"\s", newest_file_info, 1)
-    current_year = int(current_year_season[1])
-    current_season = current_year_season[0].lower()
+    # Use the newest file's name (e.g. REGINFO_RIN_DATA_202510.xml), not its label: the 2026
+    # edition is labeled "2026 Data" with no season, but its file is 202510 (Fall 2025).
+    files = [re.search(r"REGINFO_RIN_DATA_(\d{4})(04|10)\.xml", a.get("href", ""))
+             for a in soup.select("a") if "XMLViewFileAction" in a.get("href", "")]
+    files = [m for m in files if m]
+    if not files:
+        raise RuntimeError("Could not find any Unified Agenda XML files on reginfo.gov")
+    current_year = max(int(m.group(1)) for m in files)
+    current_season = "fall" if any(int(m.group(1)) == current_year and m.group(2) == "10" for m in files) else "spring"
     return current_year, current_season
 
 
